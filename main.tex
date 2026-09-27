@@ -1,0 +1,148 @@
+\documentclass[12pt]{report}
+
+\usepackage[utf8]{inputenc}
+% \usepackage{times}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[version=3]{mhchem} % Formula subscripts using \ce{}
+\usepackage{booktabs}
+\usepackage{nameref}
+\usepackage{tikz}
+\usepackage{placeins}
+\usetikzlibrary{trees,shapes,arrows,positioning}
+\usepackage{xurl}
+\usepackage[a-2b]{pdfx}
+% \graphicspath{{images/}}
+
+\graphicspath{{figures/}{Manuscript/}}
+
+\usepackage[labelfont=bf]{caption}
+\usepackage{subcaption}
+\usepackage{setspace}
+\captionsetup[table]{font={stretch=1.35}}
+\captionsetup[figure]{font={stretch=1.35}}
+\usepackage[margin=1in]{geometry}
+\doublespacing
+\hypersetup{hidelinks}
+\usepackage{cite}
+\usepackage{xcolor}
+\usepackage{overpic}
+\usepackage[all]{nowidow}
+% Define the colors used in the figure file
+\definecolor{encodercolor}{RGB}{31, 119, 180}
+\definecolor{hpocolor}{RGB}{255, 127, 14}
+\definecolor{seedcolor}{RGB}{44, 160, 44}
+
+\begin{document}
+
+% -----------------------------
+% Title page (manual, stable)
+% -----------------------------
+\begin{titlepage}
+\centering
+\vspace*{1.5cm}
+
+{\Large
+Hybrid Graph Representation Learning for Molecular Optical Property Prediction in Low-Data Regimes
+\par}
+\vspace{1.5cm}
+
+{\large
+Michael Montemurri
+\par}
+\vspace{1.5cm}
+
+\includegraphics[width=0.30\textwidth]{Images/mcgill_logo.png}
+\par
+\vspace{1.5cm}
+
+{\large
+Department of Mathematics and Statistics\\
+McGill University\\
+Montréal, QC, Canada\\
+April 2026
+\par}
+\vspace{2.5cm}
+
+A thesis submitted to McGill University in partial fulfillment of the requirements\\
+for the degree of
+\par
+
+{\large
+Master of Science
+\par}
+\vspace{1cm}
+\textcopyright Michael Montemurri, 2026
+\vfill
+\end{titlepage}
+
+% -----------------------------
+% Front matter (roman numerals)
+% -----------------------------
+\pagenumbering{roman}
+\setcounter{page}{2} % title page is effectively i but not shown
+
+\chapter*{Abstract}
+\label{sec:engAbstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Deep learning has emerged as a powerful tool for molecular property prediction, yet many experimental workflows operate in data-limited regimes where current state-of-the-art graph neural networks (GNNs) are unstable or impractical. This thesis investigates hybrid modelling strategies that decouple molecular representation learning from downstream regression for the prediction of optical properties of organic molecules. By combining directed message passing neural networks (D-MPNNs) with gradient-boosted decision trees, we demonstrate that hybrid architectures outperform end-to-end neural models for absorption wavelength prediction in small-to-mid-sized data regimes, particularly under distribution shift. To understand the origin of these gains, we analyze predictive variability using a nested variance decomposition framework, quantifying the respective contributions of representation learning and downstream readout to model instability. We further examine transfer learning, showing that its effectiveness depends strongly on chemical alignment between pretraining and downstream tasks. Beyond predictive accuracy, we explore the learned latent space using principal component analysis and Shapley Additive Explanations, revealing that the D-MPNN organizes molecular representations along physically meaningful electronic and structural axes without explicit physical supervision. Together, these results indicate that decoupling representation learning from regression can enhance performance in data-limited regimes, offering a principled and computationally practical alternative to fully end-to-end graph neural networks for molecular optical property prediction.
+
+\chapter*{Abrégé}
+\label{sec:frAbstract}
+\addcontentsline{toc}{chapter}{Abrégé}
+
+L'apprentissage profond s'est imposé comme un outil puissant pour la prédiction des propriétés moléculaires ; cependant, de nombreux protocoles expérimentaux opèrent dans des régimes à données limitées où les réseaux de neurones sur graphes (GNN) de l'état de l'art s'avèrent instables ou peu pratiques. Cette thèse étudie des stratégies de modélisation hybrides qui découplent l'apprentissage des représentations moléculaires de la régression en aval pour la prédiction des propriétés optiques des molécules organiques. En combinant des réseaux de neurones à passage de messages dirigés (D-MPNN) avec des arbres de décision boostés par gradient, nous démontrons que les architectures hybrides surpassent les modèles de neurones de bout en bout pour la prédiction de la longueur d'onde d'absorption dans des régimes de données de taille restreinte à moyenne, en particulier en présence d'un décalage de distribution. Pour comprendre l'origine de ces gains, nous analysons la variabilité prédictive à l'aide d'un cadre de décomposition imbriquée de la variance, en quantifiant les contributions respectives de l'apprentissage de la représentation et de la couche de lecture en aval à l'instabilité du modèle. Nous examinons en outre l'apprentissage par transfert, en montrant que son efficacité dépend fortement de l'alignement chimique entre le pré-entraînement et les tâches en aval. Au-delà de l'exactitude prédictive, nous explorons l'espace latent appris à l'aide de l'analyse en composantes principales et des explications additives de Shapley, révélant que le D-MPNN organise les représentations moléculaires selon des axes électroniques et structurels physiquement pertinents, et ce sans supervision physique explicite. Dans l'ensemble, ces résultats indiquent que le découplage entre l'apprentissage de la représentation et la régression peut améliorer les performances dans des régimes à données limitées, offrant une alternative rigoureuse et avantageuse sur le plan calculatoire aux réseaux de neurones sur graphes fonctionnant entièrement de bout en bout pour la prédiction des propriétés optiques moléculaires.
+
+\chapter*{Acknowledgements}
+\label{sec:ack}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+I am incredibly grateful to my supervisor, Professor Eric Kolaczyk, for his guidance and steady confidence throughout this project. I especially appreciate the freedom he gave me to follow my curiosity and take this work in directions that excited me; having that level of trust and autonomy made this research not only possible, but genuinely enjoyable.
+
+I would like to acknowledge the support of the Natural Sciences and Engineering Research Council of Canada (NSERC), whose funding through the NSERC Canada Graduate Scholarships – Master’s (CGS-M) program allowed me to focus fully on my research.
+
+I also extend my thanks to my collaborator, Shambhavi Tannir, for her insight, thoughtfulness, and teamwork, and to Gian Favero for his guidance and for introducing me to the deep learning community at Mila.
+
+To my parents and sisters, thank you for your constant love and encouragement. This achievement is built entirely on your support.
+
+And finally, to Sarah: thank you for your patience, your support, and the joy you bring to my life. My partner and my best friend.
+
+
+\tableofcontents
+\listoffigures
+
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoftables
+
+\addcontentsline{toc}{chapter}{\listtablename}
+
+\clearpage
+
+
+\input{Chapters/Acronyms}
+
+\clearpage
+% -----------------------------
+% Main matter (arabic numerals)
+% -----------------------------
+\pagenumbering{arabic}
+
+\setcounter{page}{1}
+
+\input{Chapters/Introduction}
+\input{Chapters/Related_Work}
+\input{Chapters/Foundations}
+\input{Chapters/Body}
+\input{Chapters/Appendix}
+% \input{Chapters/Discussion}
+\input{Chapters/Conclusion}
+
+% -----------------------------
+% Bibliography
+% -----------------------------
+\bibliographystyle{acm}
+\bibliography{references}
+
+\end{document}

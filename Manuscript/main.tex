@@ -1,0 +1,185 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% This is a (brief) model paper using the achemso class
+%% The document class accepts keyval options, which should include
+%% the target journal and optionally the manuscript type. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[journal=jcisd8,manuscript=article]{achemso}
+
+% \documentclass[journal=jacsat,layout=twocolumn]{achemso}
+
+% % Standard ACS-style packages
+% \usepackage[T1]{fontenc}
+% \usepackage{mathptmx} % Use Times New Roman-like font for that "ACS look"usepackage{newtxtext,newtxmath} % Loads professional, condensed Times font
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Place any additional packages needed here.  Only include packages
+%% which are essential, to avoid problems later. Do NOT use any
+%% packages which require e-TeX (for example etoolbox): the e-TeX
+%% extensions are not currently available on the ACS conversion
+%% servers.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[version=3]{mhchem} % Formula subscripts using \ce{}
+\usepackage{amsmath, amssymb}
+ \usepackage{booktabs}
+ \usepackage{nameref}
+\usepackage{tikz}
+\usetikzlibrary{trees,shapes,arrows,positioning}
+\usepackage{placeins}
+% Define the colors used in the figure file
+\definecolor{encodercolor}{RGB}{31, 119, 180}
+\definecolor{hpocolor}{RGB}{255, 127, 14}
+\definecolor{seedcolor}{RGB}{44, 160, 44}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% If issues arise when submitting your manuscript, you may want to
+%% un-comment the next line.  This provides information on the
+%% version of every file you have used.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%\listfiles
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Place any additional macros here.  Please use \newcommand* where
+%% possible, and avoid layout-changing macros (which are not used
+%% when typesetting).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand*\mycommand[1]{\texttt{\emph{#1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Meta-data block
+%% ---------------
+%% Each author should be given as a separate \author command.
+%%
+%% Corresponding authors should have an e-mail given after the author
+%% name as an \email command. Phone and fax numbers can be given
+%% using \phone and \fax, respectively; this information is optional.
+%%
+%% The affiliation of authors is given after the authors; each
+%% \affiliation command applies to all preceding authors not already
+%% assigned an affiliation.
+%%
+%% The affiliation takes an option argument for the short name.  This
+%% will typically be something like "University of Somewhere".
+%%
+%% The \altaffiliation macro should be used for new address, etc.
+%% On the other hand, \alsoaffiliation is used on a per author basis
+%% when authors are associated with multiple institutions.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\author{Michael Montemurri}
+\email{michael.montemurri@mail.mcgill.ca}
+\affiliation[McGill University]
+{Department of Mathematics and Statistics, McGill University, Montréal, QC, Canada}
+\alsoaffiliation[Mila]
+{Mila – Quebec AI Institute, Montréal, QC, Canada}
+
+\author{Shambhavi Tannir}
+\affiliation[Boston University]
+{Department of Chemistry, Boston University, Boston, MA, USA}
+
+\author{Eric Kolaczyk}
+\affiliation[McGill University]
+{Department of Mathematics and Statistics, McGill University, Montréal, QC, Canada}
+\alsoaffiliation[Mila]
+{Mila – Quebec AI Institute, Montréal, QC, Canada}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% The document title should be given as usual. Some journals require
+%% a running title from the author: this should be supplied as an
+%% optional argument to \title.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title[Title]
+  {Hybrid GNN–Tree Models for Optical Property Prediction: Decoupling Representation and Regression in Low-Data Regimes}
+% Hybrid Graph Neural Network–Tree Models for Improved Optical Property Prediction in Low-Data Regimes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Some journals require a list of abbreviations or keywords to be
+%% supplied. These should be set up here, and will be printed after
+%% the title and author information, if needed.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\abbreviations{IR,NMR,UV}
+\keywords{American Chemical Society, \LaTeX}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% The manuscript does not need to include \maketitle, which is
+%% executed automatically.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% The "tocentry" environment can be used to create an entry for the
+%% graphical table of contents. It is given here as some journals
+%% require that it is printed as part of the abstract page. It will
+%% be automatically moved as appropriate.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{tocentry}
+
+Some journals require a graphical entry for the Table of Contents.
+This should be laid out ``print ready'' so that the sizing of the
+text is correct.
+
+Inside the \texttt{tocentry} environment, the font used is Helvetica
+8\,pt, as required by \emph{Journal of the American Chemical
+Society}.
+
+The surrounding frame is 9\,cm by 3.5\,cm, which is the maximum
+permitted for  \emph{Journal of the American Chemical Society}
+graphical table of content entries. The box will not resize if the
+content is too big: instead it will overflow the edge of the box.
+
+This box and the associated title will always be printed on a
+separate page at the end of the document.
+
+\end{tocentry}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% The abstract environment will automatically gobble the contents
+%% if an abstract is not used by the target journal.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{abstract}
+Accurate prediction of molecular optical properties is critical for the design of functional organic materials, yet many experimental workflows operate in data-limited regimes where current state-of-the-art graph neural networks (GNNs) are unstable or impractical. We investigate whether decoupling representation learning from downstream regression improves robustness in these settings. 
+
+Across multiple optical property datasets, we systematically compare end-to-end Directed Message Passing Neural Networks (D-MPNNs) with hybrid strategies that freeze learned molecular embeddings and train gradient-boosted tree heads on top. In small- and medium-sized data regimes, hybrid models consistently reduce peak absorption prediction error relative to the original neural head, without requiring additional quantum-chemical descriptors or further end-to-end optimization. 
+
+Using a nested experimental design, we decompose predictive variability of the hybrid approach and show that stochasticity in encoder training dominates overall instability across regimes, while the downstream head contributes a substantial fraction of variance in low-data settings. Transfer learning experiments further demonstrate that pretrained embeddings yield gains only when downstream datasets are chemically aligned with the pretraining corpus, with limited or negative benefit under significant distribution shift. 
+
+Finally, analysis of the learned embedding geometry reveals alignment between dominant latent directions and established physicochemical determinants of optical response. Together, these results provide a mechanistic explanation for the effectiveness of hybrid modeling and establish gradient-boosted trees on frozen GNN embeddings as a statistically stable and computationally lightweight strategy for optical property prediction in data-limited chemical domains.
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Start the main part of the manuscript here.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+\input{sections/introduction}
+
+\section{Background and Methods}
+\label{sec:methods}
+\input{sections/methods}
+
+\section{Experimental Setup}
+\label{sec:experiments}
+\input{sections/experiments}
+
+\section{Results and Discussion}
+\input{sections/results_discussion}
+
+\section{Conclusion}
+\input{sections/conclusion}
+
+\section{Author Contributions}
+
+M.M. conceived the project, designed the experiments, implemented all models, performed the analyses, and wrote the manuscript. 
+S.T. provided domain expertise, review of interpretation of chemical results, and critical feedback. 
+E.K. supervised the project and provided methodological guidance. 
+All authors reviewed and approved the final manuscript.
+
+\begin{acknowledgement}
+This research was supported by the Natural Sciences and Engineering Research Council of Canada (NSERC) through Discovery Grant RGPIN-2023-03566 and DGDND-2023-03566. M.M. acknowledges support from the NSERC Canada Graduate Scholarships – Master’s (CGS-M) program.
+\end{acknowledgement}
+
+\bibliography{bibliography/references}
+
+\begin{suppinfo}
+
+\input{sections/supplementary}
+
+\end{suppinfo}
+
+\end{document}

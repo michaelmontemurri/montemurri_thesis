@@ -1,0 +1,176 @@
+\chapter{Modelling Background and Statistical Foundations}
+\label{chap:math_foundations}
+
+\section{Graph Theory \& Invariance}
+\label{sec:graph_theory}
+
+Machine learning on molecular data requires representations that respect the underlying symmetries of the physical system. Unlike images or audio, which are defined on fixed grid structures, molecules are treated as non-Euclidean objects defined by their connectivity and element types. To formalize this, we rely on the framework of geometric deep learning~\cite{bronstein2017geometric}.
+
+\subsection{Graph Representation}
+We represent a molecule as an undirected graph $G = (V, E)$, where $V = \{v_1, \dots, v_N\}$ is the set of $N$ nodes (atoms) and $E \subseteq V \times V$ is the set of edges (chemical bonds). The topological structure is encoded by the adjacency matrix $\mathbf{A} \in \{0, 1\}^{N \times N}$. Associated with each node $v_i$ is a feature vector $\mathbf{x}_i \in \mathbb{R}^F$ (e.g., atomic number, hybridization), forming a node feature matrix $\mathbf{X} \in \mathbb{R}^{N \times F}$. Similarly, each edge $(i,j) \in E$ is associated with a bond feature vector $\mathbf{b}_{ij} \in \mathbb{R}^D$ (e.g., bond type or order), forming a bond feature tensor $\mathbf{B} \in \mathbb{R}^{N \times N \times D}$,
+where $\mathbf{B}_{ij\cdot} = \mathbf{b}_{ij}$ when $(i,j) \in E$ and is zero otherwise. The complete attributed graph is thus represented as $G = (\mathbf{A}, \mathbf{X}, \mathbf{B})$. While this tensor representation of $\mathbf{B}$ is conceptually convenient, in practice we operate on a sparse edge-based representation. Specifically, we associate each edge $(i,j) \in E$ with its feature vector $\mathbf{b}_{ij}$ and store these features alongside a directed edge index
+\begin{equation}
+E^{\rightarrow} = \{(i,j), (j,i) \mid (i,j) \in E\},
+\end{equation}
+which enumerates all directed bonds in the graph.
+
+\subsection{Invariance and Equivariance}
+\label{sec:invariance}
+To be a valid embedding of a physical molecule, a learned function $\phi: \mathcal{G} \to \mathbb{R}^d$ mapping from the space of all valid molecular graphs $\mathcal{G}$ to a $d$-dimensional continuous embedding space must be invariant to permutation of vertices~\cite{bronstein2017geometric}. That is, for any permutation matrix $\mathbf{P} \in \{0,1\}^{N \times N}$, the function must satisfy:
+\begin{equation}
+\phi(\mathbf{P}\mathbf{A}\mathbf{P}^\top, \mathbf{P}\mathbf{X}, \mathbf{P}\mathbf{B}\mathbf{P}^\top)
+=
+\phi(\mathbf{A}, \mathbf{X}, \mathbf{B})
+\end{equation}
+where the permutation acts on the first two indices of the bond feature tensor 
+$\mathbf{B} \in \mathbb{R}^{N \times N \times D}$.
+
+This ensures that the predicted property depends only on the intrinsic molecular structure, not the arbitrary indexing of atoms. Standard GNN architectures achieve this by stacking permutation equivariant layers (which preserve node correspondence) followed by a global invariant pooling function (e.g., summation)~\cite{zaheer2017deep, xu2018powerful}:
+\begin{equation}
+    \mathbf{z} = \sum_{v \in V} \mathbf{h}_v^{(T)}
+\end{equation}
+where $\mathbf{h}_v^{(T)}$ denotes the learned hidden representation of node $v$ at the final GNN layer $T$, and $\mathbf{z}$ is the graph-level embedding.
+
+\section{Message Passing Neural Networks}
+\label{sec:mpnn}
+
+Here we formally describe the Message Passing Neural Network (MPNN) framework developed by Gilmer \textit{et al.}~\cite{gilmer2017neural}, which unifies graph neural networks into a single algebraic form consisting of three phases: \textit{message passing}, \textit{node update}, and \textit{readout}.
+
+\subsection{General Framework}
+Following Hamilton's notation of graph representation learning~\cite{hamilton2020graph}, we define the MPNN as an iterative process of neighbourhood aggregation. Let $T$ denote the number of message-passing layers. 
+For $t = 1, \dots, T$, let $\mathbf{h}_u^{(t)}$ denote the latent representation of node $u$ after $t$ rounds of neighbourhood aggregation, with $\mathbf{h}_u^{(0)} = \mathbf{x}_u$.
+
+The message passing operation can be expressed by defining an aggregated message $\mathbf{m}_{\mathcal{N}(u)}^{(t)}$ that incorporates both neighbouring node states and their corresponding bond features $\mathbf{b}_{vu}$:
+
+\begin{equation}
+\label{eq:mpnn-aggregate}
+    \mathbf{m}_{\mathcal{N}(u)}^{(t)} = \text{AGGREGATE}^{(t)} \left( \left\{ \left( \mathbf{h}_v^{(t-1)}, \mathbf{b}_{vu} \right) \mid v \in \mathcal{N}(u) \right\} \right)
+\end{equation}
+
+\begin{equation}
+\label{eq:mpnn-update}
+    \mathbf{h}_u^{(t)} = \text{UPDATE}^{(t)} \left( \mathbf{h}_u^{(t-1)}, \mathbf{m}_{\mathcal{N}(u)}^{(t)} \right)
+\end{equation}
+where $\text{AGGREGATE}$ and $\text{UPDATE}$ are arbitrary differentiable functions 
+(e.g., neural networks), and $\mathcal{N}(u) = \{ v \in V \mid (u,v) \in E \}$ denotes the set of neighbours of node $u$ in the molecular graph $G = (V,E)$.
+
+Intuitively, this two-step process allows each node to compile a summary of its immediate environment and then integrate this contextual information into its own representation. After running $T$ iterations of message passing, the final node embeddings are given by $\mathbf{h}_u^{(T)}$ for all $u \in V$.
+
+Finally, for graph-level tasks such as molecular property prediction, these node-level representations must be aggregated into a single vector representing the entire graph, $\mathbf{z}$. This \textit{readout} (also called pooling) step is defined by a permutation-invariant function (as discussed in Section~\ref{sec:invariance}), typically a sum or mean pooling over all nodes:
+\begin{equation}
+\label{eq:mpnn-readout}
+    \mathbf{z} = \text{READOUT} \left( \{ \mathbf{h}_u^{(T)} \mid u \in V \} \right)
+\end{equation}
+
+Notice the strict structural bound on the flow of information in this iterative framework. During each message-passing step, a node's ``receptive field'' expands by one hop.
+After $T$ iterations, information from nodes at graph distance at most $T$ can influence a given node representation. More generally, for two atoms to jointly influence the hidden state of a shared intermediate node after $T$ iterations, each must lie within $T$ hops of that node. Consequently, the two atoms must be separated by a path of length at most $2T$. In standard implementations where $T=3$, atoms separated by more than six bonds cannot jointly affect any single node representation during the nonlinear message-passing phase and can only be combined at the final global readout stage. In extended molecular systems, this locality constraint limits the model's ability to capture long-range interactions prior to global aggregation. This limitation motivates the attention-based methods discussed in Chapter~\ref{chap:related_work}.
+
+\subsection{Directed Message Passing Neural Networks}
+As discussed in Chapter~\ref{chap:related_work}, standard MPNNs operating on node states suffer from \textit{tottering}, where a message from node $v$ to $u$ can immediately return to $v$ in the next step ($v \to u \to v$). 
+
+To mitigate this, we employ the D-MPNN architecture~\cite{yang2019analyzing}. The fundamental unit of representation is the \textbf{directed bond hidden state} $\mathbf{h}_{vu}^{(t)}$, representing the message sent from atom $v$ to atom $u$. 
+
+For a directed bond from atom $v$ to atom $u$, the initial message $\mathbf{h}_{vu}^{(0)}$ is computed using the features of the source atom $v$ and the bond $(v,u)$:
+\begin{equation}
+\mathbf{h}_{vu}^{(0)} = \sigma(\mathbf{W}_i [\mathbf{x}_v \,\|\, \mathbf{b}_{vu}]),
+\end{equation}
+where $\mathbf{x}_v$ and $\mathbf{b}_{vu}$ denote atom and bond feature vectors, respectively, $\|$ denotes concatenation, $\sigma$ denotes the ReLU activation function, and $\mathbf{W}_i$ is a learned initial linear transformation mapping features into a shared $d$-dimensional hidden space, where $d$ is a chosen hyperparameter.
+
+The update rule prevents backtracking by aggregating messages from all neighbours $k$ of $v$ \textit{except} $u$ (the recipient):
+\begin{equation}
+    \mathbf{m}_{vu}^{(t+1)} = \sum_{k \in \mathcal{N}(v) \setminus \{u\}} \mathbf{h}_{kv}^{(t)}
+\end{equation}
+The hidden state for the directed bond $(v,u)$ is updated via a learned weight matrix $\mathbf{W}_h \in \mathbb{R}^{d \times d}$ shared across message-passing iterations, followed by activation $\sigma$:
+\begin{equation}
+    \mathbf{h}_{vu}^{(t+1)} = 
+    \sigma\left(
+        \mathbf{h}_{vu}^{(0)} + 
+        \mathbf{W}_h \mathbf{m}_{vu}^{(t+1)}
+    \right)
+\end{equation}
+
+After $T$ iterations, the directed bond representations are aggregated back to the atom level by concatenating the original atom features $\mathbf{x}_u$ with the summed incoming bond messages and passed through a final linear layer:
+\begin{equation}
+\mathbf{h}_u = \sigma \!\left( \mathbf{W}_a \left[ \mathbf{x}_u \,\|\, \sum_{v \in \mathcal{N}(u)} \mathbf{h}_{vu}^{(T)} \right] \right).
+\end{equation}
+
+This produces the final node representation $\mathbf{h}_u$, which is then summed over all nodes to produce the global embedding $\mathbf{z}$. This final atom readout follows the Chemprop implementation of Yang \textit{et al.}
+
+Mapped to the general MPNN formalism (Equations~\ref{eq:mpnn-aggregate} and~\ref{eq:mpnn-update}), the D-MPNN employs standard summation as its $\text{AGGREGATE}$ operator. The $\text{UPDATE}$ function consists of a learned linear transformation of the aggregated message combined with a residual connection to the \emph{initial} bond representation $\mathbf{h}_{vu}^{(0)}$, rather than to the previous hidden state $\mathbf{h}_{vu}^{(t)}$ at every step, followed by a ReLU non-linearity. This helps to prevent the network from ``forgetting'' the original features during message passing, while also mitigating oversmoothing.
+
+\section{The Manifold Hypothesis and Hybrid Modelling}
+\label{sec:manifold}
+
+A guiding assumption of this thesis is that the D-MPNN encoder 
+$\phi_\theta : \mathcal{G} \to \mathbb{R}^d$ 
+maps molecular graphs into a structured region of latent space. 
+Although the space of all possible adjacency matrices is high-dimensional and combinatorial, chemically valid molecules occupy a constrained subset governed by valence rules and physical stability.
+
+The \emph{manifold hypothesis} in machine learning suggests that high-dimensional data in the real world often concentrate near a lower-dimensional subset of the ambient space~\cite{cayton2005algorithms, goodfellow2016deep}. In this context, we hypothesize that the learned molecular representations $\mathbf z_\mathrm{mol} = \phi_\theta(G)$ 
+and fixed solvent representations $\mathbf z_\mathrm{sol}$ lie near a structured subset $\mathcal{M} \subset \mathbb{R}^{d+d_{\mathrm{sol}}}$, and that the target property varies smoothly with respect to this representation. That is, we assume there exists a function 
+$f : \mathcal{M} \to \mathbb{R}$ 
+such that
+\[
+y = f(\phi_\theta(G) \,\|\, \ \mathbf z_\mathrm{sol}),
+\]
+and that small changes in the combined latent representation correspond to small changes in the predicted property.
+
+This structure is not imposed explicitly, but emerges during end-to-end training, as the encoder and decoder are jointly optimized to minimize prediction error. In practice, this leads to representations that support stable downstream prediction, even in the absence of an explicit structural constraint.
+
+This perspective motivates the hybrid modelling strategy:
+
+\begin{enumerate}
+    \item Use the D-MPNN encoder to learn an information-dense representation 
+    $\phi_\theta(G) = \mathbf{z}_\mathrm{mol}$ of molecular structure and concatenate this with a fixed solvent embedding $\mathbf z_\mathrm{sol}$.
+    \item Replace the neural decoder with a regularized tree-based regressor that approximates $f(\mathbf z_\mathrm{mol} \,\|\, \ \mathbf z_\mathrm{sol})$.
+\end{enumerate}
+
+By freezing $\phi_\theta$ after training, we decouple representation learning from downstream regression. This allows us to evaluate whether the learned latent representation is sufficiently structured for lower-capacity models to perform competitively, particularly in data-scarce regimes.
+
+
+\section{Regularized Gradient Boosting (XGBoost)}
+\label{sec:xgboost}
+
+While GNNs provide powerful structural representations, standard multi-layer perceptron (MLP) heads are prone to overfitting in low-data regimes due to their flexible parameterization. We therefore first train the encoder jointly with a differentiable MLP head, after which the encoder weights are frozen and the MLP is replaced with XGBoost~\cite{chen2016xgboost}, a tree-based regressor with built-in regularization mechanisms well suited to small datasets.
+
+\subsection{Additive Tree Ensemble}
+XGBoost approximates the target $y$ by summing the outputs of $K$ regression trees:
+\begin{equation}
+    \hat{y}_i = \sum_{k=1}^K f_k(\mathbf{z}_i), \quad f_k \in \mathcal{F}
+\end{equation}
+where $\mathbf{z}_i$ is the frozen latent representation generated by the trained GNN encoder. Each tree $f_k$ partitions the latent space $\mathbb{R}^d$ into disjoint regions (leaves) and assigns a continuous weight $w_j$ to each leaf.
+
+\subsection{Regularized Objective and Tree Splitting}
+
+Unlike standalone Classification and Regression Tree (CART) procedures~\cite{breiman2017classification}, which greedily select splits by minimizing empirical impurity measures (e.g., mean squared error), classical Gradient Boosting Machines (GBMs)~\cite{friedman2001greedy} construct additive tree ensembles via first-order functional gradient descent on a specified loss function. 
+
+XGBoost extends this framework by incorporating an explicit structural regularization term directly into the boosting objective and by employing a second-order approximation of the loss during tree construction. At boosting iteration $t$, the objective is
+
+
+\begin{equation}
+    \mathcal{L}^{(t)} = \sum_i l(y_i, \hat{y}_i^{(t-1)} + f_t(\mathbf{z}_i)) + \Omega(f_t)
+\end{equation}
+where $l$ is a differentiable convex loss function. 
+The regularization term is
+\begin{equation}
+    \Omega(f) = \gamma Z + \frac{1}{2}\lambda ||w||^2
+\end{equation}
+and penalizes both the number of leaves $Z$ and the magnitude of the leaf weights $w$.
+
+Using a second-order Taylor expansion of the loss, XGBoost evaluates the quality of a proposed split via the exact loss reduction (Gain):
+\begin{equation}
+    \text{Gain} = \frac{1}{2} \left[ \frac{G_L^2}{H_L + \lambda} + \frac{G_R^2}{H_R + \lambda} - \frac{(G_L + G_R)^2}{H_L + H_R + \lambda} \right] - \gamma
+\end{equation}
+Here $G$ and $H$ denote the sums of first- and second-order gradients within each candidate child node. The $L_2$ regularization parameter $\lambda$ shrinks leaf weights toward zero, discouraging high-variance fits to small partitions, while $\gamma$ imposes a minimum structural improvement required for a split to occur. Together, these terms introduce an explicit bias toward simpler trees, potentially improving stability in low-sample regimes.
+
+\section{Nested Random-Effects Variance Decomposition}
+\label{sec:nested_anova}
+
+To quantify the source of predictive variability in the hybrid model, we adopt a two-factor nested random-effects model. Let $y_{ijk}$ denote a performance metric obtained from the $k$-th replicate of the $j$-th regression head trained on the $i$-th encoder. The hierarchical design is modeled as
+
+\begin{equation}
+y_{ijk} = \mu + A_i + B_{j(i)} + \varepsilon_{ijk},
+\end{equation}
+where $A_i \sim \mathcal{N}(0,\sigma_A^2)$ represents encoder-level variability, $B_{j(i)} \sim \mathcal{N}(0,\sigma_{B|A}^2)$ represents head-level variability nested within encoders, and $\varepsilon_{ijk} \sim \mathcal{N}(0,\sigma_\varepsilon^2)$ captures residual stochasticity.
+
+Under a balanced design, classical ANOVA Method of Moments estimators provide closed-form estimates of these variance components. More detailed derivations and implementation details are provided in Chapters~\ref{chap:manuscript} and~\ref{chap:supporting}.
