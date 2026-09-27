@@ -1,6 +1,6 @@
-# Masters Thesis
+# Source project for Final Thesis Submission
 
-LaTeX source files for Michael Montemurri's master's thesis:
+LaTeX source files for master's thesis:
 
 **Hybrid Graph Representation Learning for Molecular Optical Property Prediction in Low-Data Regimes**
 
